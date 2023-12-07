@@ -1,11 +1,23 @@
 # -*- coding: utf-8 -*-
 """
-Created on Sun Dec  3 13:12:05 2023
+Store Simulator - Carter Leckron
 
-@author: blobb
+In this "game" you must solve the "puzzle" or else meet your doom...that being
+purchasing groceries. This project has undergone several versions, and sadly
+I wasn't able to add nearly as much as I wanted. With that being said, what is
+here I am still proud of, and I hope you enjoy. Also, for descriptions and thought
+processes on lines of code, check the comments and the README.
+
+Also, yes I chose beans to be the placeholder image, and yes, beans.png is still
+kind of funny to me.
 """
 
+#importing the three major programs
 import simpleGE, pygame, random
+
+#node class gets information from the NodeList which is setup in the main function
+#data is setup into maptitle and images, self explanatory, the name of the current area and the image associated with it
+#hotspot data gives the name of the hotspot, the locations and sizes of the hotspot, and the indexes which will be used to call the next node
 class Node(object):
     def __init__(self,mapTitle,mapImage,option1Name,option1Hotspot,option1Index,option2Name,option2Hotspot,option2Index,option3Name,option3Hotspot,option3Index):
         self.mapTitle = mapTitle
@@ -23,26 +35,27 @@ class Node(object):
         self.option3Hotspot = option3Hotspot
         self.option3Index = option3Index
         
-        
+#game class sets up each of the sprites and handles most of the "game"
 class Game(simpleGE.Scene):
     def __init__(self):
         super().__init__()
+        #Setting the basic scene information
         self.background = pygame.image.load("background-exterior-front.png")
         self.background = pygame.transform.scale(self.background,(640,480))
         self.setCaption("Store Simulator - An Accurate Retail Experience")
-        
+        #Important information for items, these lists are connected to the nodes through the indexes, data stored in each of these is pulled in the PlaceItems function
         self.itemNameList = [["Car","Cashier"],["Cashier","Key"],["Empty","Empty"],["Beans","Cereal"],["Empty","Empty"],["Empty","Empty"],["Egg","Empty"],["Egg","Empty"],["Cashier","Key"],["Cashier","Key"],["Empty","Empty"],["Empty","Empty"],["Empty","Empty"]]
         self.itemImageList = [["car-item.png","cashier-car.png"],["cashier-register.png","key-item.png"],["beans.png","beans.png"],["beans.png","cereal-item.png"],["beans.png","beans.png"],["beans.png","beans.png"],["egg-carton-item.png","beans.png"],["beans.png","beans.png"],["cashier-register.png","key-item.png"],["cashier-register.png","key-item.png"],["beans.png","beans.png"],["beans.png","beans.png"],["beans.png","beans.png"]]
         self.itemPositionList =[[[380,390,200,130],[680,520,10,10]],[[180,172,100,150],[120,155,20,40]],[[680,520,10,10],[680,520,10,10]],[[250,90,65,87],[495,183,65,85]],[[680,520,10,10],[680,520,10,10]],[[260,10,45,80],[680,520,10,10]],[[100,65,95,45],[680,520,10,10]],[[680,520,10,10],[680,520,10,10]],[[180,172,100,150],[120,155,20,40]],[[180,172,100,150],[120,155,20,40]],[[680,520,10,10],[680,520,10,10]],[[680,520,10,10],[680,520,10,10]],[[680,520,10,10],[680,520,10,10]]]
         self.itemInteractableList = [["Clickable","Clickable"],["Clickable","Clickable"],["Pickup","Pickup"],["Pickup","Pickup"],["Empty","Empty"],["Empty","Empty"],["Pickup","Empty"],["Empty","Empty"],["Empty","Empty"],["Empty","Empty"],["Empty","Empty"],["Empty","Empty"],["Empty","Empty"]]
         self.itemInInventory = "None"
-        
+        #Click description label defining, setting the font and creating the sprite
         self.lblClickDescription = simpleGE.Label()
         self.lblClickDescription.center = (0,0)
         self.lblClickDescription.size = (70,20)
         self.lblClickDescription.font = pygame.font.Font("Bangers-Regular.ttf", 12)
         self.lblClickDescription.hide()
-        
+        #Interaction text, essentially working as the character's textboxes
         self.lblInteractionText = simpleGE.Label()
         self.lblInteractionText.center = (430,340)
         self.lblInteractionText.size = (250,20)
@@ -50,26 +63,26 @@ class Game(simpleGE.Scene):
         self.lblInteractionText.hide()
         
         self.carEgged = False
-        
+        #Creating the hotspots using the hotspot class
         self.hotSpot1 = Hotspot(self)
         self.hotSpot2 = Hotspot(self)
         self.hotSpot3 = Hotspot(self)
-        
+        #Creating the items using the item class
         self.item1 = Item(self)
         self.item2 = Item(self)
-        
+        #Creating the list U.I element
         self.list = List(self)
-        
+        #Setting the background, so that the background can actually change images without breaking
         self.backGround = BackGround(self)
         
         self.sprites = [self.backGround,self.list,self.hotSpot1,self.hotSpot2,self.hotSpot3,self.item1,self.item2,self.lblClickDescription,self.lblInteractionText]
         
     def LoadNode (self,node):
-        #taking information from the node
+        #taking information from the node class and assigning them to variables
         self.hotSpot1Name = node.option1Name
         self.hotSpot2Name = node.option2Name
         self.hotSpot3Name = node.option3Name
-        
+        #Variables are then used to give information on where the hotspots should be located in each node
         self.hotSpot1.givePosition((node.option1Hotspot[0],node.option1Hotspot[1]))
         self.hotSpot1.setSize(node.option1Hotspot[2],node.option1Hotspot[3])
         
@@ -78,24 +91,26 @@ class Game(simpleGE.Scene):
         
         self.hotSpot3.givePosition((node.option3Hotspot[0],node.option3Hotspot[1]))
         self.hotSpot3.setSize(node.option3Hotspot[2],node.option3Hotspot[3])
-        
+        #Defining the index which is used to determine the next nod when clicked on
         self.hotspot1Index = node.option1Index
         self.hotspot2Index = node.option2Index
         self.hotspot3Index = node.option3Index
-        
+        #Determining which image should be placed on the background
         self.mapImage = node.mapImage
-        
+        #If the key is in the player's inventory, hotspot two is removed so the door can be interacted with.
         if self.itemInInventory == "Key":
             if self.hotSpot2Name == "Locked Door":
                 self.hotSpot2.givePosition([680,520,10,10])
                 self.list.hide()
         
     def PlaceItems (self,index):
+        #Getting the lists from the main variables
         self.itemNames = self.itemNameList[index]
         self.itemImages = self.itemImageList[index]
         self.itemPositions = self.itemPositionList[index]
         self.itemInteractable = self.itemInteractableList[index]
-        
+        #Assigning the data from the lists to item sprites, so they are placed in the correct areas
+        #Includes a check to see if item is in inventory, if so, the item is placed outside the screen area
         if self.itemNames[0] == self.itemInInventory:
             self.item1.LoadImage("Offscreen","beans.png",[680,520,10,10])
         else:    
@@ -106,6 +121,7 @@ class Game(simpleGE.Scene):
         else:    
             self.item2.LoadImage(self.itemNames[1], self.itemImages[1], self.itemPositions[1])     
         
+        #Check to see if the egg item has been used on the car. If so, load alternate sprite locations
         if self.carEgged == True:
             if index == 0:
                 self.item1.LoadImage("Car","egged-car-item.png",[380,390,200,130])
@@ -117,7 +133,7 @@ class Game(simpleGE.Scene):
     def update(self): 
         #updating to get mouse location for hotspots
         mouseXY= pygame.mouse.get_pos()
-        #basic mouse interaction with node triggers
+        #basic mouse interaction with node triggers. When moused over, sets text to hotspot name
         if self.hotSpot1.rect.collidepoint(mouseXY):
             self.lblClickDescription.center = (mouseXY[0]+45,mouseXY[1]-8)
             self.lblClickDescription.text = (self.hotSpot1Name)
@@ -142,6 +158,7 @@ class Game(simpleGE.Scene):
         else:
             self.lblClickDescription.hide()
         #mouse interaction with items
+        #Also includes code to determine if an item is a pickup or interactable.
         if self.item1.rect.collidepoint(mouseXY):
             self.lblClickDescription.center = (mouseXY[0]+45,mouseXY[1]-8)
             self.lblClickDescription.text = (self.item1.itemValue)
@@ -158,9 +175,10 @@ class Game(simpleGE.Scene):
                     self.lblInteractionText.text = self.item1.currentLine
                     self.lblInteractionText.center = (self.item1.centerValue[0],self.item1.centerValue[1])
                     self.item1.clicked = False
+                    #line below included so that  text appears when hovering over item2
         elif self.item2.rect.collidepoint(mouseXY) != True:
             self.lblInteractionText.hide()
-
+        
         if self.item2.rect.collidepoint(mouseXY):
             self.lblClickDescription.center = (mouseXY[0]+45,mouseXY[1]-8)
             self.lblClickDescription.text = (self.item2.itemValue)    
@@ -176,7 +194,7 @@ class Game(simpleGE.Scene):
                     self.lblInteractionText.text = self.item2.currentLine
                     self.lblInteractionText.center = (self.item2.centerValue[0],self.item2.centerValue[1])
                     self.item2.clicked = False 
-
+#item class, fairly standard with some unique functions
 class Item(simpleGE.BasicSprite):
     def __init__(self,scene):
         super().__init__(scene)
@@ -186,7 +204,7 @@ class Item(simpleGE.BasicSprite):
         self.itemValue = "None"
         self.activated = False
         self.clicked = False
-    
+    #Load image function, takes information from PlaceItem and applies it to the sprite
     def LoadImage(self,itemName,imageFile,location):
         self.itemValue = itemName
         self.setImage(imageFile)
@@ -194,7 +212,7 @@ class Item(simpleGE.BasicSprite):
         self.y = location[1]
         self.setSize(location[2],location[3])
         self.rect = self.image.get_rect()
-        
+    #Check events used to determine if mouse interaction is taking place 
     def checkEvents (self):
         self.clickedOn = False
         if pygame.mouse.get_pressed() == (1,0,0):
@@ -205,12 +223,14 @@ class Item(simpleGE.BasicSprite):
                 self.activated = False
                 if self.rect.collidepoint(pygame.mouse.get_pos()):
                     self.clicked = True
-    
+    #Clickable actions determine what the item should do if it can be clicked on multiple times
     def ClickableActions(self):
+        #Defining the variables and lists used for the function
         self.carLines = ["This is the cashier's car.","Splat","The car has egg all over it!"]
         self.cashierLines = ["Welcome to Generic Mart.","If you need to check out, just bring an item here.","I swear, this job is so boring sometimes.","Are you actually going to buy anything?","You see that car out there? That's my pride and joy.","So uh...how about that weather.","No way, you aren't touching this key.","There you go, you should be checked out now.","Hey, give me my keys back!", "MY CAR! NOOOOOOOOOOOOOO!", "WHY! IT WAS THE ONE THING I LIKED.","HOW COULD YOU?!"]
         self.currentLine = ""
         self.centerValue = [0,0]
+        #Determine lines for the car sprite depending on what items the player has
         if self.itemValue == "Car":
             if self.scene.itemInInventory == "Egg":
                 self.scene.carEgged = True
@@ -225,7 +245,7 @@ class Item(simpleGE.BasicSprite):
             else:
                 self.centerValue = [430,340]
                 self.currentLine = self.carLines[0]
-                
+        #Determine the cashier's lines based both on what the player has done, and random chance
         if self.itemValue == "Cashier":
             if self.scene.itemInInventory == "Key":
                 self.currentLine = self.cashierLines[8]
@@ -248,7 +268,7 @@ class Item(simpleGE.BasicSprite):
             else:
                 self.currentLine = self.cashierLines[random.randint(0,5)]
                 self.centerValue = [200,190]
-                
+        #Makes sure the player cannot click on the key unless the puzzle is completed.    
         if self.itemValue == "Key":
             if self.scene.carEgged == True:
                self.scene.item2.hide() 
@@ -259,6 +279,7 @@ class Item(simpleGE.BasicSprite):
                 self.centerValue = [200,190]
                 
 class BackGround(simpleGE.BasicSprite):
+    #Sets the background depending on what image it recieves in updateBG
     def __init__(self,scene):
         super().__init__(scene)
         self.setImage("background-exterior-front.png")
@@ -270,7 +291,7 @@ class BackGround(simpleGE.BasicSprite):
         self.setSize(640,480)
         self.x= 320
         self.y = 240
-    
+    #Hotspot class is transparent, used to navigate the map. Determines if it is clicked on using check events
 class Hotspot(simpleGE.BasicSprite):
     def __init__(self,scene):
         super().__init__(scene)
@@ -295,7 +316,7 @@ class Hotspot(simpleGE.BasicSprite):
         self.x = position[0]
         self.y = position[1]
         self.rect = self.image.get_rect()
-   
+#List is very simple, basic image with light randomization
 class List(simpleGE.BasicSprite):
     def __init__(self,scene):
         super().__init__(scene)
